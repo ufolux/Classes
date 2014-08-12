@@ -66,54 +66,54 @@ void Pannel::setupView(){
 	this->runAction(RepeatForever::create( animate));
 
 
-	//4.add touch listener and connect them together
-	auto listener = EventListenerTouchOneByOne::create();
-	listener->setSwallowTouches(true);
+	////4.add touch listener and connect them together
+	//auto listener = EventListenerTouchOneByOne::create();
+	//listener->setSwallowTouches(true);
 
-	//touch began(lambda expression)
-	listener->onTouchBegan = [](Touch* touch, Event* event){
-		//get Current touch location
-		auto target = static_cast<Sprite*>(event->getCurrentTarget());
+	////touch began(lambda expression)
+	//listener->onTouchBegan = [](Touch* touch, Event* event){
+	//	//get Current touch location
+	//	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 
-		Point locationInNode = target->convertToNodeSpace(touch->getLocation());
-		Size size = target->getContentSize();
-		Rect rect = Rect::Rect(0, 0, size.width, size.height);
+	//	Point locationInNode = target->convertToNodeSpace(touch->getLocation());
+	//	Size size = target->getContentSize();
+	//	Rect rect = Rect::Rect(0, 0, size.width, size.height);
 
-		//judge whether the touch point in target range or not
-		if (rect.containsPoint(locationInNode))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+	//	//judge whether the touch point in target range or not
+	//	if (rect.containsPoint(locationInNode))
+	//	{
+	//		return true;
+	//	}
+	//	else
+	//	{
+	//		return false;
+	//	}
 
-	};
+	//};
 
-	//touch moved
-	listener->onTouchMoved = [](Touch* touch, Event* event){
+	////touch moved
+	//listener->onTouchMoved = [](Touch* touch, Event* event){
 
-		Size m_visibleSize = Director::getInstance()->getVisibleSize();
+	//	Size m_visibleSize = Director::getInstance()->getVisibleSize();
 
-		auto target = static_cast<Sprite*>(event->getCurrentTarget());
+	//	auto target = static_cast<Sprite*>(event->getCurrentTarget());
 
-		auto m_target_size = target->getContentSize();
-		auto m_delta = touch->getDelta();
-		auto m_targetPosition = target->getPosition();
+	//	auto m_target_size = target->getContentSize();
+	//	auto m_delta = touch->getDelta();
+	//	auto m_targetPosition = target->getPosition();
 
 
-		//restrict the move range of sprite
-		if (m_targetPosition.x - m_target_size.width / 2 + m_delta.x > 0 && m_targetPosition.x + m_target_size.width / 2 + m_delta.x < m_visibleSize.width)
-			target->setPosition(m_targetPosition.x + m_delta.x, m_targetPosition.y + 0);
+	//	//restrict the move range of sprite
+	//	if (m_targetPosition.x - m_target_size.width / 2 + m_delta.x > 0 && m_targetPosition.x + m_target_size.width / 2 + m_delta.x < m_visibleSize.width)
+	//		target->setPosition(m_targetPosition.x + m_delta.x, m_targetPosition.y + 0);
 
-	};
+	//};
 
-	//ended
-	listener->onTouchEnded = [](Touch* touch, Event* event){
-	};
+	////ended
+	//listener->onTouchEnded = [](Touch* touch, Event* event){
+	//};
 
-	_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+	//_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 
 
 

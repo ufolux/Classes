@@ -160,9 +160,72 @@ bool GamingLayer::setUpView(){
 		this->scheduleUpdate();
 
 
-		//touch listener
-		EventListener* listener = EventListenerTouchOneByOne::create();
+	
 
+		//===============add touch listener and connect them together=================//
+		
+		auto listener = EventListenerTouchOneByOne::create();
+		listener->setSwallowTouches(true);
+
+		//touch began(lambda expression)
+		listener->onTouchBegan = [&](Touch* touch, Event* event){
+			//get Current touch location
+
+			auto location = touch->getLocation();
+
+			auto position = b2Vec2(location.x / PTM_RATIO, location.y / PTM_RATIO);
+	
+				b2MouseJointDef mouseJointDef;
+				mouseJointDef.bodyA = m_world->CreateBody(new b2BodyDef);
+				mouseJointDef.bodyB = pannelBody;
+				mouseJointDef.collideConnected = true;
+				mouseJointDef.maxForce = (float)ULONG_MAX;
+				m_mouseJoint = (b2MouseJoint*)m_world->CreateJoint(&mouseJointDef);
+				return true;
+			
+
+		};
+
+		//touch moved
+		listener->onTouchMoved = [&](Touch* touch, Event* event){
+
+			/*auto m_visibleSize = Director::getInstance()->getVisibleSize();
+			auto target = static_cast<Sprite*>(event->getCurrentTarget());
+			auto m_target_size = target->getContentSize();
+			auto m_delta = touch->getDelta();
+			auto m_targetPosition = target->getPosition();*/
+
+			auto location = touch->getLocation();
+			b2Vec2 jointlocation;
+			if (m_mouseJoint != NULL)
+			{
+				auto location = touch->getLocation();
+				auto jointLocation = b2Vec2(location.x / PTM_RATIO, location.y / PTM_RATIO);
+				/*if (m_targetPosition.x - m_target_size.width / 2 + m_delta.x > 0 && m_targetPosition.x + m_target_size.width / 2 + m_delta.x < m_visibleSize.width)
+					jointlocation = b2Vec2((m_targetPosition.x + m_delta.x) / PTM_RATIO, (m_targetPosition.y + 0) / PTM_RATIO);*/
+				m_mouseJoint->SetTarget(jointLocation);
+			}
+			
+
+			
+
+			//restrict the move range of sprite
+			
+
+		};
+
+		//ended
+		listener->onTouchEnded = [&](Touch* touch, Event* event){
+			if (m_mouseJoint != NULL)
+			{
+				m_world->DestroyJoint(m_mouseJoint);
+				m_mouseJoint = NULL;
+			}
+			
+		};
+
+		_eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
+		//============================touch end================================//
 
 
 		sRect = true;

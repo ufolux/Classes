@@ -51,7 +51,7 @@ private:
 
 	void addWall(float x1, float y1, float x2, float y2);
 	float deltaTime;
-
+	b2MouseJoint *m_mouseJoint;// Û±Í¡¥Ω”
 
 	Menu* m_pauseMenu;
 	PauseLayer* m_pauseLayer;
