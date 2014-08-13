@@ -32,12 +32,5 @@ void Ball::setupView(){
 	this->initWithTexture(pannelTextrueCache);
 }
 
-bool Ball::isBallActive(){
-	return _isBallActive;
-}
-
-void Ball::setBallActive( bool isActive ){
-	_isBallActive = isActive;
-}
 
 

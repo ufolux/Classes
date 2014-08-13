@@ -11,8 +11,6 @@ public:
 	virtual bool init();
 	void setupView();
 	
-	bool isBallActive();
-	void setBallActive( bool isActive );
 
 	CREATE_FUNC( Ball );
 

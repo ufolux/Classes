@@ -18,6 +18,8 @@ GamingLayer::~GamingLayer(){
 	CC_SAFE_RELEASE(m_ball);
 	CC_SAFE_RELEASE( m_pauseLayer );
 	CC_SAFE_DELETE(m_world);
+	CC_SAFE_DELETE(m_contactListener); 
+	
 }
 
 bool GamingLayer::init(){
@@ -39,7 +41,7 @@ bool GamingLayer::init(){
 void GamingLayer::initPhysics(){
 	//create phy world
 	//set gravity 
-	b2Vec2 gravity = b2Vec2(0.0f, -10.0f);
+	b2Vec2 gravity = b2Vec2(0.0f, 0.0f);
 	m_world = new b2World(gravity);
 	//set allow sleeping
 	m_world->SetAllowSleeping(true);
@@ -50,6 +52,7 @@ void GamingLayer::initPhysics(){
 	uint32 flags = 0;
 	flags += b2Draw::e_shapeBit;
 	flags += b2Draw::e_pairBit;
+	flags += b2Draw::e_jointBit;
 	debugDraw = new GLESDebugDraw(PTM_RATIO);
 	m_world->SetDebugDraw(debugDraw);
 	debugDraw->SetFlags(flags);
@@ -65,7 +68,7 @@ void GamingLayer::initPhysics(){
 
 	// bottom
 	groundBox.Set(b2Vec2(VisibleRect::leftBottom().x / PTM_RATIO, (VisibleRect::leftBottom().y+95) / PTM_RATIO), b2Vec2(VisibleRect::rightBottom().x / PTM_RATIO, (VisibleRect::rightBottom().y+95) / PTM_RATIO));
-	m_groundBody->CreateFixture(&groundBox,0);
+	m_bottomFixtrue = m_groundBody->CreateFixture(&groundBox,0);
 
 	// top
 	groundBox.Set(b2Vec2(VisibleRect::leftTop().x / PTM_RATIO, (VisibleRect::leftTop().y-10) / PTM_RATIO), b2Vec2(VisibleRect::rightTop().x / PTM_RATIO, (VisibleRect::rightTop().y-10) / PTM_RATIO));
@@ -93,7 +96,7 @@ Scene* GamingLayer::scene(){
 		auto layer = GamingLayer::create();
 		CC_BREAK_IF( !layer );
 		sc -> getPhysicsWorld();
-
+		layer -> setTouchEnabled(true);
 		sc -> addChild( layer );
 		
 	} while (0);
@@ -146,20 +149,25 @@ bool GamingLayer::setUpView(){
 		m_pannel = Pannel::create();
 		m_pannel->setAnchorPoint(Point(0.5f, 0.5f));
 		m_pannel->setPosition(winSize.width / 2, origin.y + 105.0f);
-		this -> addChild( m_pannel,1 );
+		this -> addChild( m_pannel, 1, 3 );
 		this->definePannel();
 		
 		//add ball
 		m_ball = Ball::create();
 		m_ball->setAnchorPoint(Point(0.5f, 0.5f));
 		m_ball->setPosition(Point(winSize.width / 2, origin.y + 134));
-		this->addChild(m_ball, 1);
+		this->addChild(m_ball, 1, 4);
 		this->defineBall();
 
 		//call update
 		this->scheduleUpdate();
 
-
+		//restricting movement of the pannel
+		b2PrismaticJointDef jointDef;
+		auto directionAxis = b2Vec2(1, 0);
+		jointDef.collideConnected = true;
+		jointDef.Initialize(m_pannelBody, m_groundBody, m_pannelBody->GetWorldCenter(), directionAxis);
+		m_world->CreateJoint(&jointDef);
 	
 
 		//===============add touch listener and connect them together=================//
@@ -174,17 +182,24 @@ bool GamingLayer::setUpView(){
 			auto location = touch->getLocation();
 
 			auto position = b2Vec2(location.x / PTM_RATIO, location.y / PTM_RATIO);
-	
+
+			if (m_pannelFixtrue->TestPoint(position))
+			{
 				b2MouseJointDef mouseJointDef;
-				mouseJointDef.bodyA = m_world->CreateBody(new b2BodyDef);
-				mouseJointDef.bodyB = pannelBody;
+				mouseJointDef.bodyA = m_groundBody;
+				mouseJointDef.bodyB = m_pannelBody;
+
+				//set joint target
+				mouseJointDef.target = position;
 				mouseJointDef.collideConnected = true;
-				mouseJointDef.maxForce = (float)ULONG_MAX;
+				mouseJointDef.maxForce = 1000.0f*m_pannelBody->GetMass();
 				m_mouseJoint = (b2MouseJoint*)m_world->CreateJoint(&mouseJointDef);
+				m_pannelBody->SetAwake(true);
 				return true;
-			
+			}
 
 		};
+
 
 		//touch moved
 		listener->onTouchMoved = [&](Touch* touch, Event* event){
@@ -194,22 +209,20 @@ bool GamingLayer::setUpView(){
 			auto m_target_size = target->getContentSize();
 			auto m_delta = touch->getDelta();
 			auto m_targetPosition = target->getPosition();*/
-
+			/*auto targetPosition = m_pannel->getPosition();
+			auto targetSize = m_pannel->getContentSize();
+*/
 			auto location = touch->getLocation();
 			b2Vec2 jointlocation;
 			if (m_mouseJoint != NULL)
 			{
 				auto location = touch->getLocation();
 				auto jointLocation = b2Vec2(location.x / PTM_RATIO, location.y / PTM_RATIO);
-				/*if (m_targetPosition.x - m_target_size.width / 2 + m_delta.x > 0 && m_targetPosition.x + m_target_size.width / 2 + m_delta.x < m_visibleSize.width)
-					jointlocation = b2Vec2((m_targetPosition.x + m_delta.x) / PTM_RATIO, (m_targetPosition.y + 0) / PTM_RATIO);*/
+				//if (targetPosition.x - target_size.width / 2 + m_delta.x > 0 && m_targetPosition.x + m_target_size.width / 2 + m_delta.x < m_visibleSize.width)
+					/*jointlocation = b2Vec2((m_targetPosition.x + m_delta.x) / PTM_RATIO, (m_targetPosition.y + 0) / PTM_RATIO);*/
 				m_mouseJoint->SetTarget(jointLocation);
 			}
-			
 
-			
-
-			//restrict the move range of sprite
 			
 
 		};
@@ -228,6 +241,13 @@ bool GamingLayer::setUpView(){
 		//============================touch end================================//
 
 
+
+		//contact listener colission detector
+		m_contactListener = new MyContactListener();
+		m_world->SetContactListener(m_contactListener);
+		//=======end========================//
+
+
 		sRect = true;
 	} while (0);
 
@@ -242,6 +262,7 @@ void GamingLayer::to_return_mainmenu(){
 	auto sc = WelcomeGameLayer::scene();
 
 	Director::getInstance() -> replaceScene( CCTransitionSlideInL::create(0.1f, sc) );
+
 
 }
 
@@ -286,46 +307,48 @@ void GamingLayer::resumeGameCallback( Ref* pSender ){
 
 void GamingLayer::defineBall(){
 	b2CircleShape ballShape;
-	b2BodyDef ballBodyDef;
+	b2BodyDef m_ballBodyDef;
 	//define the chracteristic for the ball
 	ballShape.m_radius = 20 / PTM_RATIO; 
 	b2FixtureDef ballFixtrue;
-	ballFixtrue.density = 10;
-	ballFixtrue.friction = 0.1f;
+	ballFixtrue.density = 1.0;
+	ballFixtrue.friction = 0.f;
 	ballFixtrue.restitution = 1.0f;
 	ballFixtrue.shape = &ballShape;
 
 	
-	ballBodyDef.type = b2_dynamicBody;
-	ballBodyDef.userData = m_ball;
+	m_ballBodyDef.type = b2_dynamicBody;
+	m_ballBodyDef.userData = m_ball;
 			   
-	ballBodyDef.position.Set((m_ball->getPosition().x / PTM_RATIO), (m_ball->getPosition().y / PTM_RATIO) );
+	m_ballBodyDef.position.Set((m_ball->getPosition().x / PTM_RATIO), (m_ball->getPosition().y / PTM_RATIO) );
 
-	ballBody = m_world->CreateBody(&ballBodyDef);
-	ballBody->CreateFixture(&ballFixtrue);
-	ballBody->SetGravityScale(10);
+	m_ballBody = m_world->CreateBody(&m_ballBodyDef);
+	m_ballFixtrue = m_ballBody->CreateFixture(&ballFixtrue);
+	b2Vec2 force = b2Vec2(10, 10);
+	m_ballBody->ApplyLinearImpulse(force, m_ballBodyDef.position,true);
+
 
 }
 
 
 void GamingLayer::definePannel(){
 	b2PolygonShape pannelShape;//rectangle
-	b2BodyDef pannelBodyDef;
+	b2BodyDef m_pannelBodyDef;
 	pannelShape.SetAsBox(57.5f / PTM_RATIO, 9.5f / PTM_RATIO);//half w and h of body
 	
 	b2FixtureDef pannelFixtrue;
-	pannelFixtrue.density = 10;
-	pannelFixtrue.friction = 0.3f;
-	pannelFixtrue.restitution = 0;
+	pannelFixtrue.density = 10.;
+	pannelFixtrue.friction = 0.4f;
+	pannelFixtrue.restitution = 0.1f;
 	pannelFixtrue.shape = &pannelShape;
 	
-	pannelBodyDef.type = b2_dynamicBody;
-	pannelBodyDef.userData = m_pannel;
-	pannelBodyDef.position.Set((m_pannel->getPosition().x / PTM_RATIO), (m_pannel->getPosition().y / PTM_RATIO));
+	m_pannelBodyDef.type = b2_dynamicBody;
+	m_pannelBodyDef.userData = m_pannel;
+	m_pannelBodyDef.position.Set((m_pannel->getPosition().x / PTM_RATIO), (m_pannel->getPosition().y / PTM_RATIO));
 
-	pannelBody = m_world->CreateBody(&pannelBodyDef);
-	pannelBody->CreateFixture(&pannelFixtrue);
-	pannelBody->SetGravityScale(10);
+	m_pannelBody = m_world->CreateBody(&m_pannelBodyDef);
+	m_pannelFixtrue = m_pannelBody->CreateFixture(&pannelFixtrue);
+	m_pannelBody->SetGravityScale(10);
 }
 
 void GamingLayer::update(float dt){
@@ -339,6 +362,42 @@ void GamingLayer::update(float dt){
 		{
 			auto sprite = (Sprite*)body->GetUserData();
 			sprite->setPosition(Point::Point(body->GetPosition().x * PTM_RATIO, body->GetPosition().y * PTM_RATIO));
+			sprite->setRotation(-1 * CC_RADIANS_TO_DEGREES(body->GetAngle()));
+			
+			if (sprite->getTag() == 4){
+				static float maxSpeed = 10.f;
+
+				auto velocity = body->GetLinearVelocity();
+				auto speed = velocity.Length();
+				if (speed > maxSpeed)
+				{
+					body->SetLinearDamping(0.5f);
+				}
+				else if (speed < maxSpeed){
+					body->SetLinearDamping(0.f);
+				}
+			}
+		}
+	}
+
+	std::vector<MyContact>::iterator pos;
+	for (pos = m_contactListener->_contacts.begin(); pos != m_contactListener->_contacts.end(); pos++){
+		MyContact contact = *pos;
+
+		if ((contact.fixtureA == m_bottomFixtrue && contact.fixtureB == m_ballFixtrue) || (contact.fixtureB == m_bottomFixtrue && contact.fixtureA == m_ballFixtrue))
+		{
+			//add pause layer
+			this->addChild(GameOverLayer::create(), 99, 99);
+			//pause game
+			Director::getInstance()->pause();
+
+			if (Director::getInstance()->isPaused())
+			{
+				m_pauseMenu->setEnabled(false);
+			}
+			else{
+				m_pauseMenu->setEnabled(true);
+			}
 			
 		}
 	}

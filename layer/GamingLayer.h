@@ -2,15 +2,17 @@
 
 #include "BaseLayer.h"
 #include "WelcomeGameLayer.h"
+#include "GameOverLayer.h"
 #include "PauseLayer.h"
 #include "Units/Pannel.h"
 #include "ScoreLayer.h"
 #include "LevelLayer.h"
 #include "Units/Ball.h"
+#include "Management/MyContactListener.h"
 
 #include "Box2D/Box2D.h"
 
-class GamingLayer:public BaseLayer,public b2ContactListener
+class GamingLayer:public BaseLayer
 {
 public:
 	GamingLayer();
@@ -61,12 +63,17 @@ private:
 	//world
 	b2World* m_world;
 	//ball
-	b2Body *ballBody;
-
+	b2Body *m_ballBody;
+	b2Fixture *m_ballFixtrue;
 	//pannel
-	b2Body *pannelBody;
-
+	b2Body *m_pannelBody;
+	b2Fixture *m_pannelFixtrue;
 	//ground
 	b2Body *m_groundBody;
 	
+	//bottom fixtrue
+	b2Fixture *m_bottomFixtrue;
+
+	//contact listener
+	MyContactListener*m_contactListener;
 };
