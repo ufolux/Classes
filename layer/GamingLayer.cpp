@@ -13,12 +13,12 @@ GamingLayer::GamingLayer(){
 
 }
 GamingLayer::~GamingLayer(){
-
-	CC_SAFE_RELEASE(m_pannel);
-	CC_SAFE_RELEASE(m_ball);
-	CC_SAFE_RELEASE( m_pauseLayer );
-	CC_SAFE_DELETE(m_world);
-	CC_SAFE_DELETE(m_contactListener); 
+	m_pauseLayer->release();
+	m_pannel->release();
+	m_ball->release();
+	delete m_world;
+	delete m_contactListener; 
+	
 	
 }
 
@@ -36,6 +36,10 @@ bool GamingLayer::init(){
 	} while (0);
 
 	return sRect;
+}
+
+void GamingLayer::onExit(){
+
 }
 
 void GamingLayer::initPhysics(){
@@ -111,7 +115,7 @@ bool GamingLayer::setUpView(){
 	do 
 	{
 		//setbackground
-		//setBackgroundImage( UserDefault::getInstance() -> getStringForKey( __BACKGROUND_IMAGE_NAME__,__BACK_GROUND_IMAGE_1__ ).c_str() );
+		setBackgroundImage( UserDefault::getInstance() -> getStringForKey( __BACKGROUND_IMAGE_NAME__,__BACK_GROUND_IMAGE_1__ ).c_str() );
 		//set pause menu
 		auto pPause = MenuItemImage::create( __PAUSE_GAME_NORMAL__,__PAUSE_GAME_SELECTED__, CC_CALLBACK_1( GamingLayer::pauseGameCallback,this ));
 
@@ -169,6 +173,10 @@ bool GamingLayer::setUpView(){
 		jointDef.Initialize(m_pannelBody, m_groundBody, m_pannelBody->GetWorldCenter(), directionAxis);
 		m_world->CreateJoint(&jointDef);
 	
+
+		//add blocks
+		this -> addBlocks();
+
 
 		//===============add touch listener and connect them together=================//
 		
@@ -248,6 +256,7 @@ bool GamingLayer::setUpView(){
 		//=======end========================//
 
 
+
 		sRect = true;
 	} while (0);
 
@@ -312,7 +321,7 @@ void GamingLayer::defineBall(){
 	ballShape.m_radius = 20 / PTM_RATIO; 
 	b2FixtureDef ballFixtrue;
 	ballFixtrue.density = 1.0;
-	ballFixtrue.friction = 0.f;
+	ballFixtrue.friction = 0.0f;
 	ballFixtrue.restitution = 1.0f;
 	ballFixtrue.shape = &ballShape;
 
@@ -338,7 +347,7 @@ void GamingLayer::definePannel(){
 	
 	b2FixtureDef pannelFixtrue;
 	pannelFixtrue.density = 10.;
-	pannelFixtrue.friction = 0.4f;
+	pannelFixtrue.friction = 0.5f;
 	pannelFixtrue.restitution = 0.1f;
 	pannelFixtrue.shape = &pannelShape;
 	
@@ -351,13 +360,85 @@ void GamingLayer::definePannel(){
 	m_pannelBody->SetGravityScale(10);
 }
 
+
+void GamingLayer::addBlocks(){
+
+	int padding = 40;
+	char* imgName= "";
+
+
+	for (int i = 1; i <= 4; i++)
+	{
+		switch (i)
+		{
+		case 1:
+			imgName = __RED_BLOCKS_IMAGE__;
+			break;
+		case 2:
+			imgName = __YELLOW_BLOCKS_IMAGE__;
+			break;
+		case 3:
+			imgName = __BLUE_BLOCKS_IMAGE__;
+			break;
+		case 4:
+			imgName = __GRAY_BLOCKS_IMAGE__;
+			break;
+		default:
+			imgName = __RED_BLOCKS_IMAGE__;
+			break;
+		}
+
+		for (int j = 1; j <= 4; j++)
+		{
+
+			//Create blocks and add it into layer
+			auto block = Sprite::create(imgName, Rect(0, 0, 80, 40));
+			block->setAnchorPoint(Point(0.5, 0.5));
+			block->setScale(0.5f);
+			int xOffSet = padding + block->getContentSize().width / 4 + (padding + block->getContentSize().width / 2) * (j - 1);//for scale reason need to set half
+			int yOffSet = 600 - padding - block->getContentSize().height / 4 - (padding + block->getContentSize().height / 2)*(i - 1);
+			
+
+			block->setPosition(Point(xOffSet, yOffSet));
+			block->setTag(5);
+			this->addChild(block);
+
+			//Create blocks body
+			b2BodyDef blockBodyDef;
+			blockBodyDef.type = b2_dynamicBody;
+			blockBodyDef.position.Set(xOffSet / PTM_RATIO, yOffSet / PTM_RATIO);
+			blockBodyDef.userData = block;
+			b2Body *blockBody = m_world->CreateBody(&blockBodyDef);
+
+			//Create blocks shape
+			b2PolygonShape blockShape;
+			blockShape.SetAsBox(block->getContentSize().width / 4 / PTM_RATIO, block->getContentSize().height / 4 / PTM_RATIO);//for scale reason need to set half
+
+			//Create blocks fixtrue
+			b2FixtureDef blockFixtureDef;
+			blockFixtureDef.shape = &blockShape;
+			blockFixtureDef.restitution = 1.5f;
+			blockFixtureDef.density = 10.0f;
+			blockFixtureDef.friction = 0.0f;
+			b2Fixture* blockFixture = blockBody->CreateFixture(&blockFixtureDef);
+
+
+
+
+		}
+	}
+}
+
 void GamingLayer::update(float dt){
 	int positionIterations = 10;
 	int velocityIterations = 10;
 	deltaTime = dt;
+	bool blocksFound = false;
+	
+
 	m_world->Step(deltaTime, velocityIterations, positionIterations);
 	for (b2Body *body = m_world->GetBodyList(); body != nullptr; body = body->GetNext())
-	{
+	{ 
 		if ( body -> GetUserData() )
 		{
 			auto sprite = (Sprite*)body->GetUserData();
@@ -366,27 +447,47 @@ void GamingLayer::update(float dt){
 			
 			if (sprite->getTag() == 4){
 				static float maxSpeed = 10.f;
+				static float minSpeed = 9.f;
 
 				auto velocity = body->GetLinearVelocity();
 				auto speed = velocity.Length();
 				if (speed > maxSpeed)
 				{
-					body->SetLinearDamping(0.5f);
+					body->SetLinearDamping(0.1f);
 				}
 				else if (speed < maxSpeed){
 					body->SetLinearDamping(0.f);
 				}
+				
+			}
+
+			if (sprite->getTag() == 5)
+			{
+				blocksFound = true;
 			}
 		}
 	}
 
+	if (!blocksFound){
+		this->addChild(GameWinLayer::create(), 99, 99);
+		Director::getInstance()->pause();
+		if (Director::getInstance()->isPaused())
+		{
+			m_pauseMenu->setEnabled(false);
+		}
+		else{
+			m_pauseMenu->setEnabled(true);
+		}
+	}
+
+	std::vector<b2Body*>toDestory;
 	std::vector<MyContact>::iterator pos;
 	for (pos = m_contactListener->_contacts.begin(); pos != m_contactListener->_contacts.end(); pos++){
 		MyContact contact = *pos;
 
 		if ((contact.fixtureA == m_bottomFixtrue && contact.fixtureB == m_ballFixtrue) || (contact.fixtureB == m_bottomFixtrue && contact.fixtureA == m_ballFixtrue))
 		{
-			//add pause layer
+			//add GameOver layer
 			this->addChild(GameOverLayer::create(), 99, 99);
 			//pause game
 			Director::getInstance()->pause();
@@ -400,11 +501,58 @@ void GamingLayer::update(float dt){
 			}
 			
 		}
+
+		b2Body *bodyA = contact.fixtureA->GetBody();
+		b2Body *bodyB = contact.fixtureB->GetBody();
+
+		
+		if (bodyA->GetUserData() != NULL && bodyB->GetUserData() != NULL){
+			auto spriteA = static_cast<Sprite*>(bodyA->GetUserData());
+			auto spriteB = static_cast<Sprite*>(bodyB->GetUserData());
+
+			//bodyA is m_ball
+			if (spriteA->getTag() == 4 &&spriteB->getTag() == 5){
+				if (std::find(toDestory.begin(), toDestory.end(), bodyB) == toDestory.end())
+				{
+					toDestory.push_back(bodyB);
+				}
+			}
+
+			//bodyA is blocks
+			if (spriteA->getTag() == 5 && spriteB->getTag() == 4){
+				if (std::find(toDestory.begin(), toDestory.end(), bodyA) == toDestory.end())
+				{
+					toDestory.push_back(bodyA);
+				}
+
+			}
+		}
+
 	}
+
+	std::vector<b2Body*>::iterator pos2;
+	for (pos2 = toDestory.begin(); pos2 != toDestory.end(); pos2++)
+	{
+		auto body2 = static_cast<b2Body*>(*pos2);
+		if (body2->GetUserData() != NULL)
+		{
+			auto spriteBlock = static_cast<Sprite*>(body2->GetUserData());
+			spriteBlock->removeFromParentAndCleanup(true);
+
+		}
+		m_world->DestroyBody(body2);
+	}
+
+	
+
 
 	m_world->ClearForces();
 	m_world->DrawDebugData();
 }
+
+
+
+
 
 
 

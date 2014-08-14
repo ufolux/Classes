@@ -1,19 +1,19 @@
 //
-//  GameOverLayer.cpp
+//  GameWinLayer.cpp
 
 
-#include "GameOverLayer.h"
+#include "GameWinLayer.h"
 
 
 
-GameOverLayer::GameOverLayer(){
+GameWinLayer::GameWinLayer(){
 	
 }
-GameOverLayer::~GameOverLayer(){
+GameWinLayer::~GameWinLayer(){
 
 }
 
-bool GameOverLayer::init(){
+bool GameWinLayer::init(){
 
 	bool sRect = false; 
 
@@ -31,7 +31,7 @@ bool GameOverLayer::init(){
 	return sRect;
 }
 
-void GameOverLayer::setupViews(){
+void GameWinLayer::setupViews(){
 
 
 	do {
@@ -40,11 +40,19 @@ void GameOverLayer::setupViews(){
 		//get size
 		auto size = CCDirector::getInstance()->getWinSize();
 		
+		//Create a font label
+		auto winLabel = Label::create("You WIn!", __ARIRL__, 50);
+		auto scoreLabel = Label::create("Your Score is 300", __ARIRL__, 40);
+		winLabel->setPosition(visibleRect.center().x, visibleRect.center().y + 20);
+		scoreLabel->setPosition(visibleRect.center().x, visibleRect.center().y - 20);
+		this->addChild(winLabel);
+		this->addChild(scoreLabel);
+
 		//create resume and return menuItem
-		auto resumeItem = MenuItemImage::create( __RESUME_GAME_NORMAL__, __RESUME_GAME_SELECTED__, CC_CALLBACK_1( GameOverLayer::restart_game_logic, this));
+		auto resumeItem = MenuItemImage::create( __RESUME_GAME_NORMAL__, __RESUME_GAME_SELECTED__, CC_CALLBACK_1( GameWinLayer::restart_game_logic, this));
 
 		auto to_return_mainmenu_font = Label::create( "Main Menu",__ARIRL__,40);
-		auto to_return_mainmenu = MenuItemLabel::create( to_return_mainmenu_font,CC_CALLBACK_1(GameOverLayer::to_return_mainmenu_logic,this) );
+		auto to_return_mainmenu = MenuItemLabel::create( to_return_mainmenu_font,CC_CALLBACK_1(GameWinLayer::to_return_mainmenu_logic,this) );
 
 		//set menu position
 
@@ -56,7 +64,7 @@ void GameOverLayer::setupViews(){
 
 		menu -> setPosition( Point::ZERO);
 
-		this -> addChild( menu );
+		this -> addChild( menu, 99 );
 
 //
 //
@@ -64,7 +72,7 @@ void GameOverLayer::setupViews(){
 //
 }
 
-void GameOverLayer::to_return_mainmenu_logic( Ref *pSender ){
+void GameWinLayer::to_return_mainmenu_logic( Ref *pSender ){
 
 	//  todo 调用gameworld 的返回菜单的逻辑
 
@@ -77,7 +85,7 @@ void GameOverLayer::to_return_mainmenu_logic( Ref *pSender ){
 
 
 //  恢复逻辑
-void GameOverLayer::restart_game_logic( Ref* pSender ){
+void GameWinLayer::restart_game_logic( Ref* pSender ){
 
 	Director::getInstance()->replaceScene(GamingLayer::scene());
 	

@@ -68,5 +68,11 @@
 #define __PANNEL_FLASH_IMAGE__ "pannelFlash.png"
 #define __PANNEL_TXETRUE__ "pannel01.png"
 #define __BALL_IMAGE__ "ball.png"
-/*******************************************************/
+/************************************************************/
 
+/*******************Blocks Image*****************************/
+#define __RED_BLOCKS_IMAGE__ "redBlock.png"
+#define __YELLOW_BLOCKS_IMAGE__ "yellowBlock.png"
+#define __BLUE_BLOCKS_IMAGE__ "blueBlock.png"
+#define __GRAY_BLOCKS_IMAGE__ "grayBlock.png"
+/************************************************************/

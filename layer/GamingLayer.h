@@ -4,6 +4,7 @@
 #include "WelcomeGameLayer.h"
 #include "GameOverLayer.h"
 #include "PauseLayer.h"
+#include "GameWinLayer.h"
 #include "Units/Pannel.h"
 #include "ScoreLayer.h"
 #include "LevelLayer.h"
@@ -25,6 +26,8 @@ public:
 	
 	CREATE_FUNC( GamingLayer );
 
+	virtual void onExit();
+
 
 	//pause layer
 	//child layer (pauselayer) will call this func to resume game 
@@ -39,7 +42,7 @@ public:
 
 	void defineBall();
 	void definePannel();
-
+	void addBlocks();
 	//debug
 	GLESDebugDraw *debugDraw;
 	virtual void draw(Renderer *renderer, const kmMat4& transform, bool transformUpdated)override;
